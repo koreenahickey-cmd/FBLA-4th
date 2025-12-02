@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venice Local</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="auth-screen" class="screen">
+    <div class="auth-container">
+      <div class="auth-intro">
+        <h1>Venice Local</h1>
+        <p class="muted">Discover and support the best small businesses in downtown Venice, Florida. Sign in to review, save favorites, and share deals.</p>
+        <ul class="feature-list">
+          <li>Find local gems by category and rating</li>
+          <li>Leave trusted reviews with human verification</li>
+          <li>Save favorites and redeem hometown deals</li>
+        </ul>
+        <button id="guest-btn" class="ghost-btn">Continue as Guest</button>
+      </div>
+      <div class="auth-forms">
+        <div class="card">
+          <h2>Create Account</h2>
+          <form id="signup-form">
+            <label>Display Name<input type="text" id="signup-name" required></label>
+            <label>Email<input type="email" id="signup-email" required></label>
+            <label>Password<input type="password" id="signup-password" required></label>
+            <label>Profile Picture (URL)<input type="url" id="signup-avatar" placeholder="https://example.com/photo.jpg"></label>
+            <label>Profile Picture (Upload)<input type="file" id="signup-avatar-file" accept="image/*"></label>
+            <label>Role
+              <select id="signup-role" required>
+                <option value="">Select role</option>
+                <option value="owner">Business Owner</option>
+                <option value="patron">Local Patron</option>
+              </select>
+            </label>
+            <div class="verification">
+              <label><input type="checkbox" id="signup-human"> I'm not a robot</label>
+              <label class="challenge-label">
+                <span>Type the word: <strong>VENICE</strong></span>
+                <input type="text" id="signup-challenge" placeholder="VENICE" required>
+              </label>
+            </div>
+            <button type="submit" class="primary-btn">Create Account</button>
+            <p class="error" id="signup-error"></p>
+          </form>
+        </div>
+        <div class="card">
+          <h2>Sign In</h2>
+          <form id="signin-form">
+            <label>Email<input type="email" id="signin-email" required></label>
+            <label>Password<input type="password" id="signin-password" required></label>
+            <label>What is 2 + 3? (bot check)
+              <input type="number" id="signin-math" placeholder="5" required>
+            </label>
+            <button type="submit" class="secondary-btn">Sign In</button>
+            <p class="error" id="signin-error"></p>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-screen" class="screen hidden">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="brand">Venice Local</div>
+        <nav class="nav-actions">
+          <button class="nav-btn" data-target="list">All Businesses</button>
+          <button class="nav-btn" data-target="favorites">My Favorites</button>
+          <button class="nav-btn owner-only" data-target="add">Add My Business</button>
+          <button class="nav-btn" id="logout-btn">Logout</button>
+        </nav>
+      </div>
+      <div class="profile-actions">
+        <button class="nav-btn" data-target="profile">Profile</button>
+        <button class="avatar-chip" type="button" data-target="profile">
+          <img id="topbar-avatar" alt="Profile avatar">
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <section id="list-section" class="view-section">
+        <div class="filters card">
+          <div class="filter-group">
+            <label>Search
+              <input type="text" id="search-input" placeholder="Search by name or keyword">
+            </label>
+            <label>Category
+              <select id="category-filter">
+                <option value="all">All</option>
+                <option value="Food">Food</option>
+                <option value="Retail">Retail</option>
+                <option value="Services">Services</option>
+                <option value="Wellness">Wellness</option>
+                <option value="Entertainment">Entertainment</option>
+              </select>
+            </label>
+            <label>Sort by
+              <select id="sort-select">
+                <option value="rating">Highest Rating</option>
+                <option value="reviews">Most Reviewed</option>
+                <option value="alpha">Alphabetical</option>
+              </select>
+            </label>
+          </div>
+          <div id="role-note" class="muted"></div>
+        </div>
+        <div id="business-list" class="card-grid"></div>
+        <p id="empty-list" class="empty-text hidden">No businesses found. Be the first to add one!</p>
+      </section>
+
+      <section id="favorites-section" class="view-section hidden">
+        <div class="section-header">
+          <h2>My Favorites</h2>
+          <p class="muted">Saved local spots you love.</p>
+        </div>
+        <div id="favorites-list" class="card-grid"></div>
+        <p id="empty-favorites" class="empty-text hidden">You haven’t saved any local businesses yet.</p>
+      </section>
+
+      <section id="add-section" class="view-section hidden">
+        <div class="card form-card">
+          <h2>Add My Business</h2>
+          <form id="add-business-form">
+            <label>Business Name<input type="text" id="business-name" required></label>
+            <label>Category
+              <select id="business-category" required>
+                <option value="Food">Food</option>
+                <option value="Retail">Retail</option>
+                <option value="Services">Services</option>
+                <option value="Wellness">Wellness</option>
+                <option value="Entertainment">Entertainment</option>
+              </select>
+            </label>
+            <label>Address (Downtown Venice, FL)<input type="text" id="business-address" placeholder="e.g., 200 Main St, Venice, FL" required></label>
+            <label>Description<textarea id="business-description" rows="3" required></textarea></label>
+            <label>Hours<input type="text" id="business-hours" placeholder="Mon-Fri 8a-6p" required></label>
+            <label>Special Deals / Coupons<textarea id="business-deals" rows="2" placeholder="10% off for locals"></textarea></label>
+            <button type="submit" class="primary-btn">Save Business</button>
+            <p class="error" id="add-error"></p>
+            <p class="success" id="add-success"></p>
+          </form>
+        </div>
+      </section>
+
+      <section id="profile-section" class="view-section hidden">
+        <div class="card">
+          <div class="profile-avatar">
+            <div class="avatar-frame">
+              <img id="profile-avatar" alt="Profile picture">
+            </div>
+            <div>
+              <h2>Account</h2>
+              <p class="muted">Add a profile picture to personalize your account.</p>
+            </div>
+          </div>
+          <p><strong>Display Name:</strong> <span id="profile-name"></span></p>
+          <p><strong>Email:</strong> <span id="profile-email"></span></p>
+          <p><strong>Role:</strong> <span id="profile-role"></span></p>
+          <form id="profile-photo-form" class="profile-photo-form">
+            <label>Profile Picture (URL)<input type="url" id="profile-avatar-url" placeholder="https://example.com/photo.jpg"></label>
+            <label>Profile Picture (Upload)<input type="file" id="profile-avatar-file" accept="image/*"></label>
+            <button type="submit" class="secondary-btn">Update Photo</button>
+            <p class="error" id="profile-avatar-error"></p>
+            <p class="success" id="profile-avatar-success"></p>
+          </form>
+          <p class="muted">Sign in or create an account to leave reviews or add businesses.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="detail-modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="close-btn" id="close-detail">×</button>
+      <div id="detail-body"></div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
