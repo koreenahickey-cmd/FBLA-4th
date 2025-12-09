@@ -147,9 +147,17 @@ function readFileAsDataURL(file) {
 }
 
 function setView(target) {
-  document.querySelectorAll('.view-section').forEach(section => section.classList.add('hidden'));
+  const sections = document.querySelectorAll('.view-section');
+  sections.forEach(section => {
+    section.classList.add('hidden');
+    section.classList.remove('animate-in');
+  });
   const selected = document.getElementById(`${target}-section`);
-  if (selected) selected.classList.remove('hidden');
+  if (selected) {
+    selected.classList.remove('hidden');
+    selected.classList.add('animate-in');
+    setTimeout(() => selected.classList.remove('animate-in'), 350);
+  }
 }
 
 function updateRoleVisibility() {
@@ -317,6 +325,18 @@ function renderFavoritesView() {
 // -----------------------------
 // Authentication
 // -----------------------------
+function showAuthCard(mode = 'choice') {
+  const choice = document.getElementById('auth-choice-card');
+  const signup = document.getElementById('signup-card');
+  const signin = document.getElementById('signin-card');
+  [choice, signup, signin].forEach(card => {
+    if (card) card.classList.add('hidden');
+  });
+  if (mode === 'signup' && signup) signup.classList.remove('hidden');
+  else if (mode === 'signin' && signin) signin.classList.remove('hidden');
+  else if (choice) choice.classList.remove('hidden');
+}
+
 async function signUp(event) {
   event.preventDefault();
   const name = document.getElementById('signup-name').value.trim();
@@ -398,6 +418,7 @@ function logout() {
   document.getElementById('app-screen').classList.add('hidden');
   document.getElementById('signin-form').reset();
   document.getElementById('signup-form').reset();
+  showAuthCard('choice');
   const profileForm = document.getElementById('profile-photo-form');
   if (profileForm) profileForm.reset();
   const profileError = document.getElementById('profile-avatar-error');
@@ -604,7 +625,12 @@ function startEditBusiness(bizId) {
 function bindEvents() {
   document.getElementById('signup-form').addEventListener('submit', signUp);
   document.getElementById('signin-form').addEventListener('submit', signIn);
+  document.getElementById('start-create-btn').addEventListener('click', () => showAuthCard('signup'));
+  document.getElementById('start-signin-btn').addEventListener('click', () => showAuthCard('signin'));
   document.getElementById('guest-btn').addEventListener('click', continueAsGuest);
+  document.querySelectorAll('[data-auth-back]').forEach(btn => {
+    btn.addEventListener('click', () => showAuthCard('choice'));
+  });
   document.getElementById('logout-btn').addEventListener('click', logout);
   document.getElementById('profile-photo-form').addEventListener('submit', updateProfilePhoto);
 
@@ -661,6 +687,7 @@ function bindEvents() {
   });
 
   document.getElementById('add-business-form').addEventListener('submit', submitBusiness);
+
 }
 
 // -----------------------------
@@ -670,5 +697,6 @@ window.addEventListener('DOMContentLoaded', () => {
   seedData();
   loadData();
   bindEvents();
+  showAuthCard('choice');
   renderBusinesses();
 });

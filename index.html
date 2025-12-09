@@ -14,17 +14,30 @@
   <div id="auth-screen" class="screen">
     <div class="auth-container">
       <div class="auth-intro">
-        <h1>Venice Local</h1>
+        <div class="brand mark">
+          <span class="brand-logo-wrap">
+            <img src="assets/venice-local.png" alt="Venice Local logo">
+          </span>
+        </div>
+        <h1 class="sr-only">Venice Local</h1>
         <p class="muted">Discover and support the best small businesses in downtown Venice, Florida. Sign in to review, save favorites, and share deals.</p>
         <ul class="feature-list">
           <li>Find local gems by category and rating</li>
           <li>Leave trusted reviews with human verification</li>
           <li>Save favorites and redeem hometown deals</li>
         </ul>
-        <button id="guest-btn" class="ghost-btn">Continue as Guest</button>
       </div>
       <div class="auth-forms">
-        <div class="card">
+        <div class="card" id="auth-choice-card">
+          <h2>How do you want to start?</h2>
+          <p class="muted">Pick an option to jump in. You can browse as a guest or sign in to save favorites and post reviews.</p>
+          <div class="choice-buttons">
+            <button id="start-create-btn" class="primary-btn">Create Account</button>
+            <button id="start-signin-btn" class="secondary-btn">Sign In</button>
+            <button id="guest-btn" class="ghost-btn">Continue as Guest</button>
+          </div>
+        </div>
+        <div class="card hidden" id="signup-card">
           <h2>Create Account</h2>
           <form id="signup-form">
             <label>Display Name<input type="text" id="signup-name" required></label>
@@ -48,9 +61,10 @@
             </div>
             <button type="submit" class="primary-btn">Create Account</button>
             <p class="error" id="signup-error"></p>
+            <button type="button" class="link-btn" data-auth-back>← Back to options</button>
           </form>
         </div>
-        <div class="card">
+        <div class="card hidden" id="signin-card">
           <h2>Sign In</h2>
           <form id="signin-form">
             <label>Email<input type="email" id="signin-email" required></label>
@@ -60,6 +74,7 @@
             </label>
             <button type="submit" class="secondary-btn">Sign In</button>
             <p class="error" id="signin-error"></p>
+            <button type="button" class="link-btn" data-auth-back>← Back to options</button>
           </form>
         </div>
       </div>
@@ -69,7 +84,11 @@
   <div id="app-screen" class="screen hidden">
     <header class="topbar">
       <div class="topbar-left">
-        <div class="brand">Venice Local</div>
+        <div class="brand">
+          <span class="brand-logo-wrap">
+            <img src="assets/venice-local.png" alt="Venice Local logo">
+          </span>
+        </div>
         <nav class="nav-actions">
           <button class="nav-btn" data-target="list">All Businesses</button>
           <button class="nav-btn" data-target="favorites">My Favorites</button>
