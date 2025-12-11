@@ -175,7 +175,7 @@ function updateRoleVisibility() {
     roleNote.textContent = 'Guests can browse but must sign in to review, save favorites, or add businesses.';
     if (authBtn) authBtn.textContent = 'Sign In / Create Account';
   } else if (currentUser.role === 'owner') {
-    roleNote.textContent = 'Business Owners can add/edit their listings and leave reviews.';
+    roleNote.textContent = 'Business Owners can add/edit their businesses and leave reviews.';
     if (authBtn) authBtn.textContent = 'Logout';
   } else {
     roleNote.textContent = 'Local Patrons can leave reviews and save favorites.';
@@ -657,7 +657,7 @@ async function toggleFavorite(businessId) {
 async function submitBusiness(event) {
   event.preventDefault();
   if (!currentUser || currentUser.role === 'guest') {
-    document.getElementById('add-error').textContent = 'Sign in as a business owner to add listings.';
+    document.getElementById('add-error').textContent = 'Sign in as a business owner to add businesses.';
     return;
   }
   const name = document.getElementById('business-name').value.trim();
