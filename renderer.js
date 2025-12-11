@@ -1,126 +1,20 @@
 // Renderer process logic for Venice Local
-// Handles authentication, data seeding, filtering/sorting, reviews with verification, favorites, and owner tools.
+// Now uses Supabase for auth and business storage so data syncs across devices.
 
-const storageKeys = {
-  users: 'vl_users',
-  businesses: 'vl_businesses',
-  favorites: 'vl_favorites',
-  seeded: 'vl_seeded'
-};
+const { createClient } = require('@supabase/supabase-js');
+
+const SUPABASE_URL = 'https://rysbzmizspfuacnjgvfm.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5c2J6bWl6c3BmdWFjbmpndmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzOTg4ODAsImV4cCI6MjA4MDk3NDg4MH0.vaOqAerIqNvreFi2MIDiEgW0Ci348R6b9qtzbYZsh4s';
+const DEFAULT_AVATAR = 'assets/Default_pfp.svg.png';
+const STORAGE_BUCKET = 'business-media';
+const BUSINESS_PHOTO_PLACEHOLDER = 'assets/downtown-venice.webp';
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 let businesses = [];
-let users = [];
 let favorites = {};
-
-// -----------------------------
-// LocalStorage helpers
-// -----------------------------
-function loadData() {
-  users = JSON.parse(localStorage.getItem(storageKeys.users) || '[]');
-  businesses = JSON.parse(localStorage.getItem(storageKeys.businesses) || '[]');
-  favorites = JSON.parse(localStorage.getItem(storageKeys.favorites) || '{}');
-}
-
-function saveUsers() {
-  localStorage.setItem(storageKeys.users, JSON.stringify(users));
-}
-
-function saveBusinesses() {
-  localStorage.setItem(storageKeys.businesses, JSON.stringify(businesses));
-}
-
-function saveFavorites() {
-  localStorage.setItem(storageKeys.favorites, JSON.stringify(favorites));
-}
-
-// -----------------------------
-// Seed data on first launch
-// -----------------------------
-function seedData() {
-  if (localStorage.getItem(storageKeys.seeded)) return;
-
-  const sampleBusinesses = [
-    {
-      id: crypto.randomUUID(),
-      name: 'Seabreeze Café',
-      category: 'Food',
-      address: '101 W Venice Ave, Venice, FL',
-      shortDescription: 'Beachy café serving fresh pastries, Cuban coffee, and smoothies.',
-      hours: 'Mon-Sun: 7:00a - 3:00p',
-      specialDeals: '10% off for residents with local ID',
-      ownerUserId: null,
-      reviews: [
-        { userId: 'seed1', userName: 'Local Foodie', rating: 5, comment: 'Love the guava pastries!', date: '2024-11-02' },
-        { userId: 'seed2', userName: 'Beach Walker', rating: 4, comment: 'Great espresso and friendly staff.', date: '2024-12-10' }
-      ],
-      averageRating: 4.5
-    },
-    {
-      id: crypto.randomUUID(),
-      name: 'Island Boutique',
-      category: 'Retail',
-      address: '210 Miami Ave W, Venice, FL',
-      shortDescription: 'Coastal-inspired apparel, handmade jewelry, and gifts from local artisans.',
-      hours: 'Mon-Sat: 10:00a - 6:00p',
-      specialDeals: 'Buy 2 accessories, get 1 free',
-      ownerUserId: null,
-      reviews: [
-        { userId: 'seed3', userName: 'Style Maven', rating: 5, comment: 'Unique finds and friendly owner.', date: '2025-01-06' }
-      ],
-      averageRating: 5
-    },
-    {
-      id: crypto.randomUUID(),
-      name: 'Gulfside Yoga Loft',
-      category: 'Wellness',
-      address: '301 Nassau St S, Venice, FL',
-      shortDescription: 'Relaxed studio offering sunrise yoga and mindful meditation.',
-      hours: 'Mon-Fri: 6:30a - 8:00p; Sat: 8:00a - 2:00p',
-      specialDeals: 'First class free for Venice locals',
-      ownerUserId: null,
-      reviews: [
-        { userId: 'seed4', userName: 'Calm Seeker', rating: 4, comment: 'Peaceful space, loved the instructor.', date: '2025-02-12' },
-        { userId: 'seed5', userName: 'Sunrise Fan', rating: 5, comment: 'Sunrise flow is magical.', date: '2025-03-04' }
-      ],
-      averageRating: 4.5
-    },
-    {
-      id: crypto.randomUUID(),
-      name: 'Mangrove Makerspace',
-      category: 'Services',
-      address: '145 Tampa Ave E, Venice, FL',
-      shortDescription: 'Community workshop for 3D printing, laser cutting, and DIY builds.',
-      hours: 'Tue-Sun: 9:00a - 7:00p',
-      specialDeals: 'Student discount: 15% off day passes',
-      ownerUserId: null,
-      reviews: [
-        { userId: 'seed6', userName: 'DIY Dad', rating: 5, comment: 'Staff helped me finish a wood project.', date: '2024-10-19' }
-      ],
-      averageRating: 5
-    },
-    {
-      id: crypto.randomUUID(),
-      name: 'Venice Gelato Co.',
-      category: 'Food',
-      address: '225 W Miami Ave, Venice, FL',
-      shortDescription: 'Small-batch gelato inspired by Gulf flavors.',
-      hours: 'Daily: 11:00a - 10:00p',
-      specialDeals: '2-for-1 scoops on Tuesdays',
-      ownerUserId: null,
-      reviews: [
-        { userId: 'seed7', userName: 'Sweet Tooth', rating: 5, comment: 'Key lime gelato is perfect.', date: '2025-01-28' },
-        { userId: 'seed8', userName: 'Date Night', rating: 4, comment: 'Cozy vibe and friendly team.', date: '2025-02-08' }
-      ],
-      averageRating: 4.5
-    }
-  ];
-
-  localStorage.setItem(storageKeys.businesses, JSON.stringify(sampleBusinesses));
-  localStorage.setItem(storageKeys.users, JSON.stringify([]));
-  localStorage.setItem(storageKeys.favorites, JSON.stringify({}));
-  localStorage.setItem(storageKeys.seeded, 'true');
-}
+let businessPhotoSupported = false;
 
 // -----------------------------
 // Utility helpers
@@ -131,10 +25,105 @@ function calculateAverage(reviews = []) {
   return Math.round((sum / reviews.length) * 10) / 10;
 }
 
+function mapBusinessFromDb(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    address: row.address,
+    shortDescription: row.short_description,
+    hours: row.hours,
+    specialDeals: row.special_deals,
+    ownerUserId: row.owner_id,
+    reviews: row.reviews || [],
+    averageRating: row.average_rating || 0,
+    photoUrl: row.photo_url || ''
+  };
+}
+
+function mapBusinessToDb(biz) {
+  const payload = {
+    id: biz.id,
+    name: biz.name,
+    category: biz.category,
+    address: biz.address,
+    short_description: biz.shortDescription,
+    hours: biz.hours,
+    special_deals: biz.specialDeals,
+    owner_id: biz.ownerUserId,
+    reviews: biz.reviews || [],
+    average_rating: biz.averageRating || 0
+  };
+  if (businessPhotoSupported && biz.photoUrl) {
+    payload.photo_url = biz.photoUrl;
+  }
+  return payload;
+}
+
+async function fetchProfile(userId) {
+  if (!userId) return null;
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+  if (error) {
+    console.warn('Profile fetch failed', error.message);
+    return null;
+  }
+  return data;
+}
+
+async function upsertProfile({ id, name, role, avatar, email }) {
+  const { error } = await supabase.from('profiles').upsert({
+    id,
+    name,
+    role,
+    avatar,
+    email
+  });
+  if (error) throw error;
+}
+
+async function fetchBusinesses() {
+  const { data, error } = await supabase.from('businesses').select('*').order('name');
+  if (error) {
+    console.error('Failed to fetch businesses', error.message);
+    return [];
+  }
+  return (data || []).map(mapBusinessFromDb);
+}
+
+async function fetchFavoritesForUser(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabase.from('favorites').select('business_id').eq('user_id', userId);
+  if (error) {
+    console.warn('Favorites fetch failed', error.message);
+    return [];
+  }
+  return data.map(r => r.business_id);
+}
+
+async function syncBusinessesAndFavorites() {
+  businesses = await fetchBusinesses();
+  if (currentUser && currentUser.role !== 'guest') {
+    const favs = await fetchFavoritesForUser(currentUser.id);
+    favorites[currentUser.id] = favs;
+  }
+  renderBusinesses();
+  renderFavoritesView();
+  if (currentUser?.role === 'owner') renderOwnerDashboard();
+}
+
 function buildAvatarPlaceholder(name = 'Guest') {
   const initial = (name.trim()[0] || 'G').toUpperCase();
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="100%" height="100%" rx="18" fill="%23175f62"/><text x="50%" y="55%" font-family="Manrope, Arial, sans-serif" font-size="70" fill="%23ffffff" text-anchor="middle" dominant-baseline="middle">${initial}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
+}
+
+async function checkBusinessPhotoSupport() {
+  if (businessPhotoSupported) return true;
+  const { error } = await supabase.from('businesses').select('photo_url').limit(1);
+  businessPhotoSupported = !error;
+  if (error) console.warn('Business photo column missing. Add photo_url to businesses to enable photos.');
+  return businessPhotoSupported;
 }
 
 function readFileAsDataURL(file) {
@@ -157,7 +146,22 @@ function setView(target) {
     selected.classList.remove('hidden');
     selected.classList.add('animate-in');
     setTimeout(() => selected.classList.remove('animate-in'), 350);
+    if (target === 'owner') renderOwnerDashboard();
   }
+}
+
+async function uploadImage(file, folder) {
+  const safeName = `${folder}/${crypto.randomUUID()}-${file.name.replace(/\s+/g, '-')}`;
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(safeName, file, { cacheControl: '3600', upsert: false });
+  if (error) throw error;
+  const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(safeName);
+  return data?.publicUrl;
+}
+
+async function resolvePhoto({ file, url, folder }) {
+  if (file) return uploadImage(file, folder);
+  if (url) return url;
+  return '';
 }
 
 function updateRoleVisibility() {
@@ -185,17 +189,19 @@ function renderProfile() {
   document.getElementById('profile-role').textContent = currentUser?.role || 'Guest';
   const avatarEl = document.getElementById('profile-avatar');
   if (avatarEl) {
-    const placeholder = buildAvatarPlaceholder(currentUser?.name || 'Guest');
+    const fallback = buildAvatarPlaceholder(currentUser?.name || 'Guest');
+    const placeholder = DEFAULT_AVATAR;
     const src = currentUser?.avatar || placeholder;
-    avatarEl.onerror = () => { avatarEl.onerror = null; avatarEl.src = placeholder; };
+    avatarEl.onerror = () => { avatarEl.onerror = null; avatarEl.src = fallback; };
     avatarEl.src = src;
     avatarEl.alt = `${currentUser?.name || 'Guest'} avatar`;
   }
   const topbarAvatar = document.getElementById('topbar-avatar');
   if (topbarAvatar) {
-    const placeholder = buildAvatarPlaceholder(currentUser?.name || 'Guest');
+    const fallback = buildAvatarPlaceholder(currentUser?.name || 'Guest');
+    const placeholder = DEFAULT_AVATAR;
     const src = currentUser?.avatar || placeholder;
-    topbarAvatar.onerror = () => { topbarAvatar.onerror = null; topbarAvatar.src = placeholder; };
+    topbarAvatar.onerror = () => { topbarAvatar.onerror = null; topbarAvatar.src = fallback; };
     topbarAvatar.src = src;
     topbarAvatar.alt = `${currentUser?.name || 'Guest'} avatar`;
   }
@@ -225,15 +231,20 @@ async function updateProfilePhoto(event) {
 
   try {
     const avatar = avatarFile ? await readFileAsDataURL(avatarFile) : avatarUrl;
+    await supabase.auth.updateUser({ data: { avatar } });
+    await upsertProfile({
+      id: currentUser.id,
+      name: currentUser.name,
+      role: currentUser.role,
+      avatar,
+      email: currentUser.email
+    });
     currentUser.avatar = avatar;
-    const idx = users.findIndex(u => u.id === currentUser.id);
-    if (idx >= 0) users[idx].avatar = avatar;
-    saveUsers();
     renderProfile();
     successEl.textContent = 'Profile photo updated.';
     document.getElementById('profile-photo-form').reset();
   } catch (err) {
-    errorEl.textContent = 'Could not read photo. Try again.';
+    errorEl.textContent = 'Could not update photo. Try again.';
   }
 }
 
@@ -264,7 +275,12 @@ function renderBusinesses() {
   filtered.forEach(biz => {
     const card = document.createElement('div');
     card.className = 'card business-card';
+    const photo = biz.photoUrl || BUSINESS_PHOTO_PLACEHOLDER;
+    const hasDeal = !!biz.specialDeals;
     card.innerHTML = `
+      <div class="business-photo">
+        <img src="${photo}" alt="${biz.name} photo" onerror="this.onerror=null;this.src='${BUSINESS_PHOTO_PLACEHOLDER}'">
+      </div>
       <div class="card-header">
         <div>
           <h3>${biz.name}</h3>
@@ -274,7 +290,7 @@ function renderBusinesses() {
       </div>
       <p class="description">${biz.shortDescription}</p>
       <div class="card-footer">
-        <span class="deal-pill">${biz.specialDeals ? 'Deals available' : 'No deals posted'}</span>
+        ${hasDeal ? `<span class="deal-pill">Deals available</span>` : '<span></span>'}
         <div>
           ${renderFavoriteButton(biz.id)}
           <button class="ghost-btn" data-detail="${biz.id}">Details</button>
@@ -283,12 +299,14 @@ function renderBusinesses() {
     `;
     listEl.appendChild(card);
   });
+
+  if (currentUser?.role === 'owner') renderOwnerDashboard();
 }
 
 function renderFavoriteButton(businessId) {
   if (!currentUser || currentUser.role === 'guest') return '';
   const saved = favorites[currentUser.id]?.includes(businessId);
-  return `<button class="secondary-btn" data-fav="${businessId}">${saved ? '★ Saved' : '♡ Save'}</button>`;
+  return `<button class="secondary-btn" data-fav="${businessId}">${saved ? '♡ Saved' : '♡ Save'}</button>`;
 }
 
 function renderFavoritesView() {
@@ -301,7 +319,12 @@ function renderFavoritesView() {
   savedBusinesses.forEach(biz => {
     const card = document.createElement('div');
     card.className = 'card business-card';
+    const photo = biz.photoUrl || BUSINESS_PHOTO_PLACEHOLDER;
+    const hasDeal = !!biz.specialDeals;
     card.innerHTML = `
+      <div class="business-photo">
+        <img src="${photo}" alt="${biz.name} photo" onerror="this.onerror=null;this.src='${BUSINESS_PHOTO_PLACEHOLDER}'">
+      </div>
       <div class="card-header">
         <div>
           <h3>${biz.name}</h3>
@@ -311,14 +334,55 @@ function renderFavoritesView() {
       </div>
       <p class="description">${biz.shortDescription}</p>
       <div class="card-footer">
-        <span class="deal-pill">${biz.specialDeals ? 'Deals available' : 'No deals posted'}</span>
+        ${hasDeal ? `<span class="deal-pill">Deals available</span>` : '<span></span>'}
         <div>
-          <button class="secondary-btn" data-fav="${biz.id}">★ Saved</button>
+          <button class="secondary-btn" data-fav="${biz.id}">♡ Saved</button>
           <button class="ghost-btn" data-detail="${biz.id}">Details</button>
         </div>
       </div>
     `;
     favSection.appendChild(card);
+  });
+}
+
+function renderOwnerDashboard() {
+  if (!currentUser || currentUser.role !== 'owner') return;
+  const owned = businesses.filter(b => b.ownerUserId === currentUser.id);
+  const totalReviews = owned.reduce((acc, biz) => acc + (biz.reviews?.length || 0), 0);
+  const avgRating = owned.length
+    ? (owned.reduce((acc, biz) => acc + (biz.averageRating || 0), 0) / owned.length).toFixed(1)
+    : '0.0';
+  const activeDeals = owned.filter(b => b.specialDeals?.trim()).length;
+
+  const bizCountEl = document.getElementById('stat-count-businesses');
+  const reviewEl = document.getElementById('stat-count-reviews');
+  const ratingEl = document.getElementById('stat-avg-rating');
+  const dealsEl = document.getElementById('stat-count-deals');
+  if (bizCountEl) bizCountEl.textContent = owned.length;
+  if (reviewEl) reviewEl.textContent = totalReviews;
+  if (ratingEl) ratingEl.textContent = avgRating;
+  if (dealsEl) dealsEl.textContent = activeDeals;
+
+  const listEl = document.getElementById('owner-business-list');
+  const emptyEl = document.getElementById('owner-empty');
+  if (!listEl || !emptyEl) return;
+  listEl.innerHTML = '';
+  emptyEl.classList.toggle('hidden', owned.length > 0);
+
+  owned.forEach(biz => {
+    const card = document.createElement('div');
+    card.className = 'owner-card';
+    card.innerHTML = `
+      <h4>${biz.name}</h4>
+      <p class="meta">${biz.category} • ${biz.address}</p>
+      <p class="meta">Rating: ${biz.averageRating.toFixed(1)} • Reviews: ${biz.reviews?.length || 0}</p>
+      <p class="deal">${biz.specialDeals ? `Deal: ${biz.specialDeals}` : 'No deal posted yet'}</p>
+      <div class="actions">
+        <button class="secondary-btn" data-edit="${biz.id}">Edit</button>
+        <button class="ghost-btn" data-detail="${biz.id}">View</button>
+      </div>
+    `;
+    listEl.appendChild(card);
   });
 }
 
@@ -358,24 +422,32 @@ async function signUp(event) {
     errorEl.textContent = 'Verification failed. Please confirm you are human and type VENICE.';
     return;
   }
-  if (users.some(u => u.email === email)) {
-    errorEl.textContent = 'An account with this email already exists.';
-    return;
-  }
-
   try {
-    const avatar = avatarFile ? await readFileAsDataURL(avatarFile) : avatarUrl;
-    const newUser = { id: crypto.randomUUID(), name, email, password, role, avatar };
-    users.push(newUser);
-    saveUsers();
-    currentUser = newUser;
+    const avatar = avatarFile ? await readFileAsDataURL(avatarFile) : (avatarUrl || DEFAULT_AVATAR);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name, role, avatar }
+      }
+    });
+    if (error) throw error;
+    const authedUser = data.user;
+    await upsertProfile({ id: authedUser.id, name, role, avatar, email });
+    currentUser = {
+      id: authedUser.id,
+      name,
+      email,
+      role,
+      avatar
+    };
     enterApp();
   } catch (err) {
-    errorEl.textContent = 'Could not read profile photo. Please try again or use a URL.';
+    errorEl.textContent = err.message || 'Sign up failed. Please try again.';
   }
 }
 
-function signIn(event) {
+async function signIn(event) {
   event.preventDefault();
   const email = document.getElementById('signin-email').value.trim().toLowerCase();
   const password = document.getElementById('signin-password').value.trim();
@@ -388,17 +460,26 @@ function signIn(event) {
     return;
   }
 
-  const found = users.find(u => u.email === email && u.password === password);
-  if (!found) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
     errorEl.textContent = 'Invalid credentials. Please try again or create an account.';
     return;
   }
-  currentUser = found;
+
+  const authedUser = data.user;
+  const profile = await fetchProfile(authedUser.id);
+  currentUser = {
+    id: authedUser.id,
+    name: profile?.name || authedUser.user_metadata?.name || authedUser.email,
+    email: authedUser.email,
+    role: profile?.role || authedUser.user_metadata?.role || 'patron',
+    avatar: profile?.avatar || authedUser.user_metadata?.avatar || DEFAULT_AVATAR
+  };
   enterApp();
 }
 
 function continueAsGuest() {
-  currentUser = { id: 'guest', name: 'Guest', email: 'guest', role: 'guest', avatar: '' };
+  currentUser = { id: 'guest', name: 'Guest', email: 'guest', role: 'guest', avatar: DEFAULT_AVATAR };
   enterApp();
 }
 
@@ -407,13 +488,14 @@ function enterApp() {
   document.getElementById('app-screen').classList.remove('hidden');
   updateRoleVisibility();
   renderProfile();
-  renderBusinesses();
-  renderFavoritesView();
+  checkBusinessPhotoSupport();
+  syncBusinessesAndFavorites();
   setView('list');
 }
 
 function logout() {
   currentUser = null;
+  supabase.auth.signOut();
   document.getElementById('auth-screen').classList.remove('hidden');
   document.getElementById('app-screen').classList.add('hidden');
   document.getElementById('signin-form').reset();
@@ -435,8 +517,9 @@ function openDetail(businessId) {
   if (!biz) return;
   const modal = document.getElementById('detail-modal');
   const body = document.getElementById('detail-body');
+  const bizPhoto = biz.photoUrl || BUSINESS_PHOTO_PLACEHOLDER;
   const reviewsHTML = biz.reviews && biz.reviews.length
-    ? biz.reviews.map(r => `<div class="review"><div class="review-header"><strong>${r.userName}</strong> • ${new Date(r.date).toLocaleDateString()}</div><div class="review-rating">⭐ ${r.rating}</div><p>${r.comment}</p></div>`).join('')
+    ? biz.reviews.map(r => `<div class="review"><div class="review-header"><strong>${r.userName}</strong> • ${new Date(r.date).toLocaleDateString()}</div><div class="review-rating">⭐ ${r.rating}</div><p>${r.comment}</p>${r.photo ? `<img class="review-photo" src="${r.photo}" alt="Review from ${r.userName}" onerror="this.style.display='none'">` : ''}</div>`).join('')
     : '<p class="empty-text">Be the first to review this business!</p>';
 
   const canEdit = currentUser && currentUser.role === 'owner' && biz.ownerUserId === currentUser.id;
@@ -451,6 +534,9 @@ function openDetail(businessId) {
         <p><strong>Hours:</strong> ${biz.hours}</p>
       </div>
       <div class="rating-large"><span>${biz.averageRating.toFixed(1)}</span></div>
+    </div>
+    <div class="detail-photo">
+      <img src="${bizPhoto}" alt="${biz.name} photo" onerror="this.onerror=null;this.src='${BUSINESS_PHOTO_PLACEHOLDER}'">
     </div>
     <div class="deal-banner">Special deals: ${biz.specialDeals || 'No deals posted yet.'}</div>
     <div class="detail-actions">
@@ -470,6 +556,8 @@ function reviewFormTemplate(id) {
     <form class="review-form" data-review="${id}">
       <label>Rating (1-5)<input type="number" min="1" max="5" required></label>
       <label>Comment<textarea rows="2" required></textarea></label>
+      <label>Photo (URL, optional)<input type="url" class="review-photo-url" placeholder="https://example.com/photo.jpg"></label>
+      <label>Photo (Upload, optional)<input type="file" class="review-photo-file" accept="image/*"></label>
       <label>Type the word LOCAL to verify<input type="text" placeholder="LOCAL" required></label>
       <button type="submit" class="primary-btn">Submit Review</button>
       <p class="error form-error"></p>
@@ -482,17 +570,21 @@ function closeDetail() {
   document.getElementById('detail-body').innerHTML = '';
 }
 
-function submitReview(form) {
+async function submitReview(form) {
   const bizId = form.getAttribute('data-review');
   const ratingInput = form.querySelector('input[type="number"]');
   const commentInput = form.querySelector('textarea');
   const verifyInput = form.querySelector('input[type="text"]');
+  const photoUrlInput = form.querySelector('.review-photo-url');
+  const photoFileInput = form.querySelector('.review-photo-file');
   const errorEl = form.querySelector('.form-error');
   errorEl.textContent = '';
 
   const rating = Number(ratingInput.value);
   const comment = commentInput.value.trim();
   const verify = verifyInput.value.trim().toUpperCase();
+  const photoUrl = photoUrlInput ? photoUrlInput.value.trim() : '';
+  const photoFile = photoFileInput ? photoFileInput.files[0] : null;
 
   if (!rating || rating < 1 || rating > 5) {
     errorEl.textContent = 'Rating must be between 1 and 5.';
@@ -517,43 +609,66 @@ function submitReview(form) {
     comment,
     date: new Date().toISOString()
   };
-  biz.reviews.push(newReview);
-  biz.averageRating = calculateAverage(biz.reviews);
-  saveBusinesses();
-  renderBusinesses();
-  renderFavoritesView();
-  openDetail(bizId); // re-render detail with new review
+  try {
+    if (photoFile || photoUrl) {
+      try {
+        newReview.photo = await resolvePhoto({ file: photoFile, url: photoUrl, folder: `reviews/${bizId}` });
+      } catch (uploadErr) {
+        errorEl.textContent = 'Could not upload photo. Try a smaller file or use a URL.';
+        return;
+      }
+    }
+    biz.reviews.push(newReview);
+    biz.averageRating = calculateAverage(biz.reviews);
+    await supabase.from('businesses').update(mapBusinessToDb(biz)).eq('id', bizId);
+    await syncBusinessesAndFavorites();
+    form.reset();
+    openDetail(bizId); // re-render detail with new review
+  } catch (err) {
+    errorEl.textContent = 'Could not submit review. Please try again.';
+  }
 }
 
 // -----------------------------
 // Favorites
 // -----------------------------
-function toggleFavorite(businessId) {
+async function toggleFavorite(businessId) {
   if (!currentUser || currentUser.role === 'guest') return;
   favorites[currentUser.id] = favorites[currentUser.id] || [];
   const list = favorites[currentUser.id];
   const index = list.indexOf(businessId);
-  if (index >= 0) {
-    list.splice(index, 1);
-  } else {
-    list.push(businessId);
+  try {
+    if (index >= 0) {
+      await supabase.from('favorites').delete().match({ user_id: currentUser.id, business_id: businessId });
+      list.splice(index, 1);
+    } else {
+      await supabase.from('favorites').upsert({ user_id: currentUser.id, business_id: businessId });
+      list.push(businessId);
+    }
+    await syncBusinessesAndFavorites();
+  } catch (err) {
+    console.error('Favorite toggle failed', err.message);
   }
-  saveFavorites();
-  renderBusinesses();
-  renderFavoritesView();
 }
 
 // -----------------------------
 // Add / Edit business
 // -----------------------------
-function submitBusiness(event) {
+async function submitBusiness(event) {
   event.preventDefault();
+  if (!currentUser || currentUser.role === 'guest') {
+    document.getElementById('add-error').textContent = 'Sign in as a business owner to add listings.';
+    return;
+  }
   const name = document.getElementById('business-name').value.trim();
   const category = document.getElementById('business-category').value;
   const address = document.getElementById('business-address').value.trim();
   const description = document.getElementById('business-description').value.trim();
   const hours = document.getElementById('business-hours').value.trim();
-  const deals = document.getElementById('business-deals').value.trim();
+  const hasDeals = document.getElementById('has-deals').checked;
+  const deals = hasDeals ? document.getElementById('business-deals').value.trim() : '';
+  const photoUrlInput = document.getElementById('business-photo-url').value.trim();
+  const photoFile = document.getElementById('business-photo-file').files[0];
   const errorEl = document.getElementById('add-error');
   const successEl = document.getElementById('add-success');
   errorEl.textContent = '';
@@ -568,40 +683,67 @@ function submitBusiness(event) {
     return;
   }
 
-  const editingId = event.target.getAttribute('data-editing');
-  if (editingId) {
-    const biz = businesses.find(b => b.id === editingId);
-    if (biz && biz.ownerUserId === currentUser.id) {
-      biz.name = name;
-      biz.category = category;
-      biz.address = address;
-      biz.shortDescription = description;
-      biz.hours = hours;
-      biz.specialDeals = deals;
+  try {
+    await checkBusinessPhotoSupport();
+    if ((photoUrlInput || photoFile) && !businessPhotoSupported) {
+      errorEl.textContent = 'Business photos need a photo_url column in Supabase. Add it, then try again.';
+      return;
     }
-    event.target.removeAttribute('data-editing');
-    successEl.textContent = 'Business updated successfully.';
-  } else {
-    const newBusiness = {
-      id: crypto.randomUUID(),
-      name,
-      category,
-      address,
-      shortDescription: description,
-      hours,
-      specialDeals: deals,
-      ownerUserId: currentUser.id,
-      reviews: [],
-      averageRating: 0
-    };
-    businesses.push(newBusiness);
-    successEl.textContent = 'Business added successfully.';
-  }
 
-  saveBusinesses();
-  renderBusinesses();
-  renderFavoritesView();
-  event.target.reset();
+    let photoUrl = '';
+    if (businessPhotoSupported && (photoUrlInput || photoFile)) {
+      try {
+        photoUrl = await resolvePhoto({ file: photoFile, url: photoUrlInput, folder: `businesses/${currentUser?.id || 'guest'}` });
+      } catch (uploadErr) {
+        errorEl.textContent = 'Could not upload business photo. Try a smaller file or provide a URL.';
+        return;
+      }
+    }
+
+    const editingId = event.target.getAttribute('data-editing');
+    if (editingId) {
+      const biz = businesses.find(b => b.id === editingId);
+      if (biz && biz.ownerUserId === currentUser.id) {
+        biz.name = name;
+        biz.category = category;
+        biz.address = address;
+        biz.shortDescription = description;
+        biz.hours = hours;
+        biz.specialDeals = deals;
+        if (businessPhotoSupported && photoUrl) {
+          biz.photoUrl = photoUrl;
+        }
+        const { error: updateError } = await supabase.from('businesses').update(mapBusinessToDb(biz)).eq('id', editingId);
+        if (updateError) throw updateError;
+      }
+      event.target.removeAttribute('data-editing');
+      successEl.textContent = 'Business updated successfully.';
+    } else {
+      const newBusiness = {
+        id: crypto.randomUUID(),
+        name,
+        category,
+        address,
+        shortDescription: description,
+        hours,
+        specialDeals: deals,
+        ownerUserId: currentUser.id,
+        reviews: [],
+        averageRating: 0,
+        photoUrl: businessPhotoSupported ? photoUrl : ''
+      };
+      const { error: insertError } = await supabase.from('businesses').insert(mapBusinessToDb(newBusiness));
+      if (insertError) throw insertError;
+      businesses.push(newBusiness);
+      successEl.textContent = 'Business added successfully.';
+    }
+
+    await syncBusinessesAndFavorites();
+    event.target.reset();
+  } catch (err) {
+    console.error('Business save failed', err.message || err);
+    errorEl.textContent = err?.message || 'Could not save business. Please try again.';
+  }
 }
 
 function startEditBusiness(bizId) {
@@ -615,7 +757,13 @@ function startEditBusiness(bizId) {
   document.getElementById('business-address').value = biz.address;
   document.getElementById('business-description').value = biz.shortDescription;
   document.getElementById('business-hours').value = biz.hours;
+  document.getElementById('has-deals').checked = !!biz.specialDeals;
+  document.getElementById('business-deals').disabled = !biz.specialDeals;
   document.getElementById('business-deals').value = biz.specialDeals;
+  const photoUrlInput = document.getElementById('business-photo-url');
+  const photoFileInput = document.getElementById('business-photo-file');
+  if (photoUrlInput) photoUrlInput.value = biz.photoUrl || '';
+  if (photoFileInput) photoFileInput.value = '';
   document.getElementById('add-success').textContent = 'Editing your business. Save changes when ready.';
 }
 
@@ -634,7 +782,7 @@ function bindEvents() {
   document.getElementById('logout-btn').addEventListener('click', logout);
   document.getElementById('profile-photo-form').addEventListener('submit', updateProfilePhoto);
 
-  document.querySelectorAll('.nav-btn').forEach(btn => {
+  document.querySelectorAll('[data-target]:not(.avatar-chip)').forEach(btn => {
     const target = btn.getAttribute('data-target');
     if (target) {
       btn.addEventListener('click', () => {
@@ -654,6 +802,12 @@ function bindEvents() {
   document.getElementById('search-input').addEventListener('input', renderBusinesses);
   document.getElementById('category-filter').addEventListener('change', renderBusinesses);
   document.getElementById('sort-select').addEventListener('change', renderBusinesses);
+  const hasDeals = document.getElementById('has-deals');
+  const dealsField = document.getElementById('business-deals');
+  hasDeals.addEventListener('change', () => {
+    dealsField.disabled = !hasDeals.checked;
+    if (!hasDeals.checked) dealsField.value = '';
+  });
 
   document.getElementById('business-list').addEventListener('click', (e) => {
     if (e.target.dataset.detail) {
@@ -668,6 +822,14 @@ function bindEvents() {
     if (e.target.dataset.detail) openDetail(e.target.dataset.detail);
     if (e.target.dataset.fav) toggleFavorite(e.target.dataset.fav);
   });
+
+  const ownerList = document.getElementById('owner-business-list');
+  if (ownerList) {
+    ownerList.addEventListener('click', (e) => {
+      if (e.target.dataset.edit) startEditBusiness(e.target.dataset.edit);
+      if (e.target.dataset.detail) openDetail(e.target.dataset.detail);
+    });
+  }
 
   document.getElementById('detail-modal').addEventListener('click', (e) => {
     if (e.target.id === 'detail-modal') closeDetail();
@@ -693,10 +855,38 @@ function bindEvents() {
 // -----------------------------
 // Initialization
 // -----------------------------
+async function initSession() {
+  const { data } = await supabase.auth.getSession();
+  const session = data?.session;
+  if (session?.user) {
+    const profile = await fetchProfile(session.user.id);
+    currentUser = {
+      id: session.user.id,
+      name: profile?.name || session.user.user_metadata?.name || session.user.email,
+      email: session.user.email,
+      role: profile?.role || session.user.user_metadata?.role || 'patron',
+      avatar: profile?.avatar || session.user.user_metadata?.avatar || DEFAULT_AVATAR
+    };
+    document.getElementById('auth-screen').classList.add('hidden');
+    document.getElementById('app-screen').classList.remove('hidden');
+    updateRoleVisibility();
+    renderProfile();
+  } else {
+    document.getElementById('auth-screen').classList.remove('hidden');
+    document.getElementById('app-screen').classList.add('hidden');
+  }
+  await checkBusinessPhotoSupport();
+  await syncBusinessesAndFavorites();
+}
+
 window.addEventListener('DOMContentLoaded', () => {
-  seedData();
-  loadData();
   bindEvents();
   showAuthCard('choice');
-  renderBusinesses();
+  initSession();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js').catch(() => {
+      console.warn('Service worker registration failed.');
+    });
+  }
 });
