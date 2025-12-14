@@ -380,8 +380,18 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
   margin: 8px 0;
   font-weight: 600;
+}
+.checkbox-inline input[type="checkbox"] {
+  width: auto;
+  height: auto;
+  margin: 0;
+  flex: 0 0 auto;
+}
+.checkbox-inline span { white-space: nowrap; }
 }
 .dashboard-header .small { margin-top: 2px; }
 .owner-list {
@@ -411,7 +421,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 80px 20px 20px;
+  padding: 160px 20px 40px; /* extra top clearance for nav, lighter bottom gap */
 }
 
 .modal-content {
@@ -420,9 +430,18 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   padding: 24px;
   width: min(800px, 100%);
   position: relative;
-  max-height: 90vh;
+  max-height: calc(100vh - 200px); /* account for modal padding so content never touches edges */
   overflow-y: auto;
-  margin-top: 16px;
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .modal {
+    padding: 130px 12px 40px;
+  }
+  .modal-content {
+    max-height: calc(100vh - 170px);
+  }
 }
 
 .close-btn {
@@ -444,6 +463,9 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   color: #fff;
   width: 118px;
   height: 118px;
+  min-width: 118px;
+  min-height: 118px;
+  flex: 0 0 118px;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -464,8 +486,18 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
 .deal-banner { background: var(--bg-2); padding: 12px; border-radius: var(--radius); margin: 12px 0; font-weight: 700; color: var(--nav); }
 .reviews { display: grid; gap: 12px; }
 .review { background: var(--bg); padding: 10px 12px; border-radius: var(--radius); }
-.review .review-rating { margin-top: 8px; display: inline-block; }
-.review-form { margin-top: 16px; border-top: 1px solid var(--bg-2); padding-top: 12px; }
+.review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.review-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid var(--bg-2); flex-shrink: 0; background: #fff; }
+.review .review-rating { margin-top: 4px; display: inline-block; font-weight: 700; }
+.review-meta { line-height: 1.2; }
+.review-form {
+  margin-top: 16px;
+  border-top: 1px solid var(--bg-2);
+  padding-top: 14px;
+  display: grid;
+  gap: 10px; /* consistent breathing room between fields */
+}
+.review-form button { margin-top: 10px; }
 .detail-actions { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 
 .profile-avatar {

@@ -18,7 +18,7 @@ A desktop prototype built with Electron that helps residents and visitors explor
 
 ## Key features
 - Local authentication with bot checks (math + keyword challenges)
-- Business Owner vs. Local Patron roles
+- Business Owner vs. Local Customer roles
 - Browse, search, and filter businesses by category
 - Sort by rating, review count, or alphabetically
 - Detailed business view with specials/coupons

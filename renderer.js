@@ -178,7 +178,7 @@ function updateRoleVisibility() {
     roleNote.textContent = 'Business Owners can add/edit their businesses and leave reviews.';
     if (authBtn) authBtn.textContent = 'Logout';
   } else {
-    roleNote.textContent = 'Local Patrons can leave reviews and save favorites.';
+    roleNote.textContent = 'Local Customers can leave reviews and save favorites.';
     if (authBtn) authBtn.textContent = 'Logout';
   }
 }
@@ -519,7 +519,21 @@ function openDetail(businessId) {
   const body = document.getElementById('detail-body');
   const bizPhoto = biz.photoUrl || BUSINESS_PHOTO_PLACEHOLDER;
   const reviewsHTML = biz.reviews && biz.reviews.length
-    ? biz.reviews.map(r => `<div class="review"><div class="review-header"><strong>${r.userName}</strong> • ${new Date(r.date).toLocaleDateString()}</div><div class="review-rating">⭐ ${r.rating}</div><p>${r.comment}</p>${r.photo ? `<img class="review-photo" src="${r.photo}" alt="Review from ${r.userName}" onerror="this.style.display='none'">` : ''}</div>`).join('')
+    ? biz.reviews.map(r => {
+        const avatar = r.avatar || DEFAULT_AVATAR || buildAvatarPlaceholder(r.userName || 'User');
+        const fallback = buildAvatarPlaceholder(r.userName || 'User');
+        return `<div class="review">
+          <div class="review-header">
+            <img class="review-avatar" src="${avatar}" alt="${r.userName || 'Reviewer'} avatar" onerror="this.onerror=null;this.src='${fallback}'">
+            <div>
+              <div class="review-meta"><strong>${r.userName}</strong> • ${new Date(r.date).toLocaleDateString()}</div>
+              <div class="review-rating">⭐ ${r.rating}</div>
+            </div>
+          </div>
+          <p>${r.comment}</p>
+          ${r.photo ? `<img class="review-photo" src="${r.photo}" alt="Review from ${r.userName}" onerror="this.style.display='none'">` : ''}
+        </div>`;
+      }).join('')
     : '<p class="empty-text">Be the first to review this business!</p>';
 
   const canEdit = currentUser && currentUser.role === 'owner' && biz.ownerUserId === currentUser.id;
@@ -605,6 +619,7 @@ async function submitReview(form) {
   const newReview = {
     userId: currentUser.id,
     userName: currentUser.name,
+    avatar: currentUser.avatar || buildAvatarPlaceholder(currentUser.name || 'User'),
     rating,
     comment,
     date: new Date().toISOString()
@@ -637,6 +652,8 @@ async function toggleFavorite(businessId) {
   favorites[currentUser.id] = favorites[currentUser.id] || [];
   const list = favorites[currentUser.id];
   const index = list.indexOf(businessId);
+  const detailModal = document.getElementById('detail-modal');
+  const detailOpen = detailModal && !detailModal.classList.contains('hidden');
   try {
     if (index >= 0) {
       await supabase.from('favorites').delete().match({ user_id: currentUser.id, business_id: businessId });
@@ -646,6 +663,12 @@ async function toggleFavorite(businessId) {
       list.push(businessId);
     }
     await syncBusinessesAndFavorites();
+    // Keep any open detail modal and existing buttons in sync with the latest save state.
+    document.querySelectorAll(`[data-fav="${businessId}"]`).forEach(btn => {
+      const isSaved = favorites[currentUser.id]?.includes(businessId);
+      btn.textContent = isSaved ? '♡ Saved' : '♡ Save';
+    });
+    if (detailOpen) openDetail(businessId);
   } catch (err) {
     console.error('Favorite toggle failed', err.message);
   }
@@ -740,6 +763,7 @@ async function submitBusiness(event) {
 
     await syncBusinessesAndFavorites();
     event.target.reset();
+    setView('owner'); // exit add screen after saving
   } catch (err) {
     console.error('Business save failed', err.message || err);
     errorEl.textContent = err?.message || 'Could not save business. Please try again.';
