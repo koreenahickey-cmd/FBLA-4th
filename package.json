@@ -11,10 +11,10 @@
   "author": "FBLA Venice Local",
   "license": "MIT",
   "dependencies": {
-    "@supabase/supabase-js": "^2.87.1",
-    "electron": "^30.0.9"
+    "@supabase/supabase-js": "^2.87.1"
   },
   "devDependencies": {
+    "electron": "^30.0.9",
     "electron-builder": "^24.13.3"
   },
   "build": {
