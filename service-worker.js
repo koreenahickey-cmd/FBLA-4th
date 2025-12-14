@@ -1,14 +1,14 @@
-const CACHE_NAME = 'venice-local-cache-v1';
+const CACHE_NAME = 'venice-local-cache-v2';
 const OFFLINE_ASSETS = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/renderer.js',
-  '/preload.js',
-  '/manifest.json',
-  '/assets/venice-local.png',
-  '/assets/downtown-venice.webp',
-  '/assets/venice-local-3.png'
+  './',
+  './index.html',
+  './styles.css',
+  './renderer.js',
+  './preload.js',
+  './manifest.json',
+  './assets/venice-local.png',
+  './assets/Default_pfp.svg.png',
+  './assets/downtown-venice.webp'
 ];
 
 self.addEventListener('install', (event) => {
@@ -42,7 +42,7 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
           return response;
         })
-        .catch(() => caches.match('/index.html'));
+        .catch(() => caches.match('./index.html'));
     })
   );
 });

@@ -5,9 +5,12 @@ const { createClient } = require('@supabase/supabase-js');
 
 const SUPABASE_URL = 'https://rysbzmizspfuacnjgvfm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5c2J6bWl6c3BmdWFjbmpndmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzOTg4ODAsImV4cCI6MjA4MDk3NDg4MH0.vaOqAerIqNvreFi2MIDiEgW0Ci348R6b9qtzbYZsh4s';
-const DEFAULT_AVATAR = 'assets/Default_pfp.svg.png';
+const assetUrl = (file) => new URL(`./assets/${file}`, window.location.href).href;
+const LOGO = assetUrl('venice-local.png');
+const DEFAULT_AVATAR = assetUrl('Default_pfp.svg.png');
+const BACKGROUND_IMAGE = assetUrl('downtown-venice.webp');
 const STORAGE_BUCKET = 'business-media';
-const BUSINESS_PHOTO_PLACEHOLDER = 'assets/downtown-venice.webp';
+const BUSINESS_PHOTO_PLACEHOLDER = BACKGROUND_IMAGE;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -133,6 +136,14 @@ function readFileAsDataURL(file) {
     reader.onerror = () => reject(reader.error);
     reader.readAsDataURL(file);
   });
+}
+
+function applyStaticAssets() {
+  const logoSrc = LOGO;
+  document.querySelectorAll('.veniceLogo').forEach(img => {
+    img.src = logoSrc;
+  });
+  document.documentElement.style.setProperty('--auth-bg-image', `url('${BACKGROUND_IMAGE}')`);
 }
 
 function setView(target) {
@@ -906,6 +917,7 @@ async function initSession() {
 window.addEventListener('DOMContentLoaded', () => {
   bindEvents();
   showAuthCard('choice');
+  applyStaticAssets();
   initSession();
 
   if ('serviceWorker' in navigator) {

@@ -7,7 +7,7 @@
   "theme_color": "#175f62",
   "icons": [
     {
-      "src": "assets/venice-local.png",
+      "src": "./assets/venice-local.png",
       "sizes": "500x500",
       "type": "image/png"
     }

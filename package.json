@@ -24,7 +24,9 @@
       "buildResources": "assets"
     },
     "files": [
-      "**/*"
+      "**/*",
+      "!dist{,/**}",
+      "assets/**"
     ]
   }
 }
