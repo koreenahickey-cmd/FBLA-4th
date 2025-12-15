@@ -85,13 +85,53 @@ async function upsertProfile({ id, name, role, avatar, email }) {
   if (error) throw error;
 }
 
+function setBusinessLoadError(message = '') {
+  const el = document.getElementById('business-load-error');
+  if (el) el.textContent = message;
+}
+
+async function fetchReviewsForBusinesses(ids = []) {
+  if (!ids.length) return {};
+  const map = {};
+  try {
+    const { data, error } = await supabase.from('reviews').select('*').in('business_id', ids);
+    if (error) throw error;
+    (data || []).forEach((r) => {
+      map[r.business_id] = map[r.business_id] || [];
+      map[r.business_id].push({
+        userId: r.user_id,
+        userName: r.user_name,
+        rating: Number(r.rating),
+        comment: r.comment,
+        date: r.date,
+        avatar: r.avatar,
+        photo: r.photo || ''
+      });
+    });
+  } catch (err) {
+    console.warn('Review fetch failed; continuing without linked reviews.', err.message);
+  }
+  return map;
+}
+
 async function fetchBusinesses() {
-  const { data, error } = await supabase.from('businesses').select('*').order('name');
-  if (error) {
-    console.error('Failed to fetch businesses', error.message);
+  try {
+    const { data, error } = await supabase.from('businesses').select('*').order('name');
+    if (error) throw error;
+    const mapped = (data || []).map(mapBusinessFromDb).filter(Boolean);
+    const reviewMap = await fetchReviewsForBusinesses(mapped.map((b) => b.id));
+    mapped.forEach((biz) => {
+      const reviews = reviewMap[biz.id] || biz.reviews || [];
+      biz.reviews = reviews;
+      biz.averageRating = calculateAverage(reviews);
+    });
+    setBusinessLoadError(mapped.length ? '' : 'No businesses found in Supabase.');
+    return mapped;
+  } catch (err) {
+    console.error('Failed to fetch businesses', err.message);
+    setBusinessLoadError('Could not load businesses from Supabase. Check your connection or Supabase policies.');
     return [];
   }
-  return (data || []).map(mapBusinessFromDb);
 }
 
 async function fetchFavoritesForUser(userId) {
@@ -644,9 +684,27 @@ async function submitReview(form) {
         return;
       }
     }
-    biz.reviews.push(newReview);
-    biz.averageRating = calculateAverage(biz.reviews);
-    await supabase.from('businesses').update(mapBusinessToDb(biz)).eq('id', bizId);
+
+    // Primary path: insert into dedicated reviews table (works even if business row RLS blocks patrons).
+    const { error: reviewInsertError } = await supabase.from('reviews').insert({
+      business_id: bizId,
+      user_id: newReview.userId,
+      user_name: newReview.userName,
+      rating: newReview.rating,
+      comment: newReview.comment,
+      date: newReview.date,
+      avatar: newReview.avatar,
+      photo: newReview.photo || ''
+    });
+
+    if (reviewInsertError) {
+      // Fallback to legacy embedded reviews on the business row.
+      console.warn('Dedicated review insert failed, attempting to store on business row', reviewInsertError.message);
+      biz.reviews.push(newReview);
+      biz.averageRating = calculateAverage(biz.reviews);
+      await supabase.from('businesses').update(mapBusinessToDb(biz)).eq('id', bizId);
+    }
+
     await syncBusinessesAndFavorites();
     form.reset();
     openDetail(bizId); // re-render detail with new review
@@ -920,9 +978,26 @@ window.addEventListener('DOMContentLoaded', () => {
   applyStaticAssets();
   initSession();
 
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js').catch(() => {
-      console.warn('Service worker registration failed.');
-    });
-  }
+  // Ensure no stale service worker/cache interferes with Supabase requests in dev or packaged builds.
+  const CACHE_PREFIX = 'venice-local-cache';
+  const clearStaleCaches = async () => {
+    if (!('caches' in window)) return;
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k.startsWith(CACHE_PREFIX)).map(k => caches.delete(k)));
+  };
+
+  const registerSw = async () => {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      // Unregister any old workers first.
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+      await clearStaleCaches();
+      await navigator.serviceWorker.register('service-worker.js');
+    } catch (err) {
+      console.warn('Service worker registration failed.', err.message);
+    }
+  };
+
+  registerSw();
 });
