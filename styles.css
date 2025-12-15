@@ -1,3 +1,4 @@
+/* Theme tokens for colors, fonts, and common radii/shadows */
 :root {
   --bg: #f5f0e6;
   --bg-2: #e9e1d5;
@@ -12,6 +13,7 @@
   font-family: 'Space Grotesk', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
+/* Base resets and typography */
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -46,6 +48,7 @@ h1, h2, h3 {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Hero/auth screen layout */
 #auth-screen {
   background:
     linear-gradient(180deg, rgba(245, 240, 230, 0.7) 45%, rgba(245, 240, 230, 0.55) 75%, rgba(245, 240, 230, 0.7)),
@@ -55,6 +58,7 @@ h1, h2, h3 {
   background-size: cover;
 }
 
+/* Auth layout: intro/brand on left, forms on right */
 .auth-container {
   display: grid;
   grid-template-columns: 1.1fr 1fr;
@@ -65,6 +69,7 @@ h1, h2, h3 {
   align-items: stretch;
 }
 
+/* Branded hero card */
 .auth-intro {
   background: var(--nav);
   color: #fff;
@@ -74,6 +79,7 @@ h1, h2, h3 {
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
+/* Logo/brand treatment shared between auth and topbar */
 .brand {
   display: inline-flex;
   align-items: center;
@@ -158,6 +164,7 @@ h1, h2, h3 {
 .choice-buttons { display: grid; gap: 10px; }
 .auth-forms form { display: grid; gap: 14px; }
 
+/* Reusable card container styling */
 .card {
   background: #fff;
   border-radius: var(--radius);
@@ -168,6 +175,7 @@ h1, h2, h3 {
 
 .card h2 { margin-top: 0; }
 
+/* Form controls */
 label { display: block; font-weight: 600; margin: 10px 0 4px; }
 label input, label select, label textarea {
   width: 100%;
@@ -186,6 +194,7 @@ label textarea::placeholder {
 
 textarea { resize: vertical; }
 
+/* Primary button styles */
 button {
   cursor: pointer;
   border: none;
@@ -220,6 +229,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
 }
 .link-btn:hover { transform: none; box-shadow: none; }
 
+/* App shell header */
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -271,6 +281,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   display: block;
 }
 
+/* Main content layout and business grid */
 .content { padding: 24px; max-width: 1200px; margin: 0 auto; }
 .filters { margin-bottom: 16px; }
 .filter-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; align-items: end; }
@@ -311,6 +322,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   min-height: 54px;
 }
 
+/* Badges and helper text */
 .rating-chip {
   background: var(--nav);
   color: #fff;
@@ -334,6 +346,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
 .error { color: #b23b3b; min-height: 18px; font-size: 14px; margin: 6px 0 0; }
 .success { color: #1a6f46; min-height: 18px; font-size: 14px; margin: 6px 0 0; }
 
+/* Owner dashboard panels */
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -355,6 +368,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   flex-wrap: wrap;
 }
 
+/* Detail modal content */
 .detail-photo img {
   width: 100%;
   max-height: 280px;
@@ -372,6 +386,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   border-radius: 10px;
 }
 
+/* Form helpers for uploads and toggles */
 .photo-inputs {
   margin: 12px 0;
   padding: 12px;
@@ -396,6 +411,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
 }
 .checkbox-inline span { white-space: nowrap; }
 }
+/* Owner list and actions */
 .dashboard-header .small { margin-top: 2px; }
 .owner-list {
   display: grid;
@@ -417,6 +433,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
 .section-header { margin: 10px 0 16px; }
 .form-card form button { margin-top: 14px; }
 
+/* Modal overlay for business details */
 .modal {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
@@ -447,6 +464,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   }
 }
 
+/* Detail summary stats and review list */
 .close-btn {
   position: absolute;
   top: 12px;
@@ -503,6 +521,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
 .review-form button { margin-top: 10px; }
 .detail-actions { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
 
+/* Profile drawer styling */
 .profile-avatar {
   display: flex;
   align-items: center;
@@ -531,6 +550,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   gap: 10px;
 }
 
+/* Simple human verification block styling */
 .verification {
   background: #f2ebdf;
   padding: 12px;
@@ -560,6 +580,7 @@ button:focus-visible { outline: 2px solid rgba(23, 95, 98, 0.4); outline-offset:
   accent-color: var(--accent);
 }
 
+/* Responsive tweaks */
 @media (max-width: 960px) {
   .auth-container { grid-template-columns: 1fr; padding: 32px; }
   .nav-actions { width: 100%; justify-content: space-between; }

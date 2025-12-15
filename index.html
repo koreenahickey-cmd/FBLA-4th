@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- Authentication flow (signup/signin/guest) -->
   <div id="auth-screen" class="screen">
     <div class="auth-container">
       <div class="auth-intro">
@@ -81,6 +82,7 @@
     </div>
   </div>
 
+  <!-- Main application shell after login -->
   <div id="app-screen" class="screen hidden">
     <header class="topbar">
       <div class="topbar-left">
@@ -105,6 +107,7 @@
     </header>
 
     <main class="content">
+      <!-- Browse all businesses -->
       <section id="list-section" class="view-section">
         <div class="filters card">
           <div class="filter-group">
@@ -135,6 +138,7 @@
         <p id="empty-list" class="empty-text hidden">No businesses found. Be the first to add one!</p>
       </section>
 
+      <!-- Saved favorites -->
       <section id="favorites-section" class="view-section hidden">
         <div class="section-header">
           <h2>My Favorites</h2>
@@ -144,6 +148,7 @@
         <p id="empty-favorites" class="empty-text hidden">You haven’t saved any local businesses yet.</p>
       </section>
 
+      <!-- Owner add/edit form -->
       <section id="add-section" class="view-section hidden">
         <div class="card form-card">
           <h2>Add My Business</h2>
@@ -177,6 +182,7 @@
         </div>
       </section>
 
+      <!-- Owner dashboard metrics -->
       <section id="owner-section" class="view-section hidden">
         <div class="section-header">
           <h2>Owner Dashboard</h2>
@@ -214,6 +220,7 @@
         </div>
       </section>
 
+      <!-- Profile drawer -->
       <section id="profile-section" class="view-section hidden">
         <div class="card">
           <div class="profile-avatar">
@@ -240,6 +247,7 @@
     </main>
   </div>
 
+  <!-- Business detail modal -->
   <div id="detail-modal" class="modal hidden">
     <div class="modal-content">
       <button class="close-btn" id="close-detail">×</button>

@@ -1,3 +1,4 @@
+// Basic offline handler for static assets (kept lean for this prototype).
 const CACHE_NAME = 'venice-local-cache-v4';
 const OFFLINE_ASSETS = [
   './',
@@ -11,12 +12,14 @@ const OFFLINE_ASSETS = [
   './assets/downtown-venice.webp'
 ];
 
+// Cache core assets during install so the shell can load offline.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(OFFLINE_ASSETS))
   );
 });
 
+// Remove outdated caches when a new worker activates.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -30,6 +33,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Serve cached assets when possible; always bypass cache for Supabase calls.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;

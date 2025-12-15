@@ -3,6 +3,7 @@
 
 const { createClient } = require('@supabase/supabase-js');
 
+// --- Supabase configuration and asset references ---
 const SUPABASE_URL = 'https://rysbzmizspfuacnjgvfm.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5c2J6bWl6c3BmdWFjbmpndmZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzOTg4ODAsImV4cCI6MjA4MDk3NDg4MH0.vaOqAerIqNvreFi2MIDiEgW0Ci348R6b9qtzbYZsh4s';
 const assetUrl = (file) => new URL(`./assets/${file}`, window.location.href).href;
@@ -12,8 +13,10 @@ const BACKGROUND_IMAGE = assetUrl('downtown-venice.webp');
 const STORAGE_BUCKET = 'business-media';
 const BUSINESS_PHOTO_PLACEHOLDER = BACKGROUND_IMAGE;
 
+// Create Supabase client to talk to auth + database.
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// --- In-memory state for the current session ---
 let currentUser = null;
 let businesses = [];
 let favorites = {};
@@ -23,12 +26,14 @@ let businessPhotoSupported = false;
 // Utility helpers
 // -----------------------------
 function calculateAverage(reviews = []) {
+  // Compute a rounded average rating from a list of reviews.
   if (!reviews.length) return 0;
   const sum = reviews.reduce((acc, r) => acc + Number(r.rating), 0);
   return Math.round((sum / reviews.length) * 10) / 10;
 }
 
 function mapBusinessFromDb(row) {
+  // Convert a Supabase row into the shape the UI expects.
   if (!row) return null;
   return {
     id: row.id,
@@ -46,6 +51,7 @@ function mapBusinessFromDb(row) {
 }
 
 function mapBusinessToDb(biz) {
+  // Convert a UI business object back into a Supabase row.
   const payload = {
     id: biz.id,
     name: biz.name,
@@ -65,6 +71,7 @@ function mapBusinessToDb(biz) {
 }
 
 async function fetchProfile(userId) {
+  // Load a profile row for the signed-in user.
   if (!userId) return null;
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
   if (error) {
@@ -75,6 +82,7 @@ async function fetchProfile(userId) {
 }
 
 async function upsertProfile({ id, name, role, avatar, email }) {
+  // Insert or update a profile to keep auth metadata in sync.
   const { error } = await supabase.from('profiles').upsert({
     id,
     name,
@@ -86,11 +94,13 @@ async function upsertProfile({ id, name, role, avatar, email }) {
 }
 
 function setBusinessLoadError(message = '') {
+  // Surface data loading issues in the UI.
   const el = document.getElementById('business-load-error');
   if (el) el.textContent = message;
 }
 
 async function fetchReviewsForBusinesses(ids = []) {
+  // Fetch all reviews for a set of business IDs.
   if (!ids.length) return {};
   const map = {};
   try {
@@ -115,6 +125,7 @@ async function fetchReviewsForBusinesses(ids = []) {
 }
 
 async function fetchBusinesses() {
+  // Retrieve all businesses, attach reviews, and compute ratings.
   try {
     const { data, error } = await supabase.from('businesses').select('*').order('name');
     if (error) throw error;
@@ -135,6 +146,7 @@ async function fetchBusinesses() {
 }
 
 async function fetchFavoritesForUser(userId) {
+  // Load the IDs the user has saved as favorites.
   if (!userId) return [];
   const { data, error } = await supabase.from('favorites').select('business_id').eq('user_id', userId);
   if (error) {
@@ -145,6 +157,7 @@ async function fetchFavoritesForUser(userId) {
 }
 
 async function syncBusinessesAndFavorites() {
+  // Keep in-memory businesses and favorites in sync with Supabase.
   businesses = await fetchBusinesses();
   if (currentUser && currentUser.role !== 'guest') {
     const favs = await fetchFavoritesForUser(currentUser.id);
@@ -156,12 +169,14 @@ async function syncBusinessesAndFavorites() {
 }
 
 function buildAvatarPlaceholder(name = 'Guest') {
+  // Generate a simple fallback SVG avatar for missing photos.
   const initial = (name.trim()[0] || 'G').toUpperCase();
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="100%" height="100%" rx="18" fill="%23175f62"/><text x="50%" y="55%" font-family="Manrope, Arial, sans-serif" font-size="70" fill="%23ffffff" text-anchor="middle" dominant-baseline="middle">${initial}</text></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 async function checkBusinessPhotoSupport() {
+  // Detect if the photo_url column exists before allowing uploads.
   if (businessPhotoSupported) return true;
   const { error } = await supabase.from('businesses').select('photo_url').limit(1);
   businessPhotoSupported = !error;
@@ -170,6 +185,7 @@ async function checkBusinessPhotoSupport() {
 }
 
 function readFileAsDataURL(file) {
+  // Convert an uploaded file into a data URL string.
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
@@ -179,6 +195,7 @@ function readFileAsDataURL(file) {
 }
 
 function applyStaticAssets() {
+  // Wire in logo and background images once the DOM is ready.
   const logoSrc = LOGO;
   document.querySelectorAll('.veniceLogo').forEach(img => {
     img.src = logoSrc;
@@ -187,6 +204,7 @@ function applyStaticAssets() {
 }
 
 function setView(target) {
+  // Toggle between main app sections and optionally refresh owner data.
   const sections = document.querySelectorAll('.view-section');
   sections.forEach(section => {
     section.classList.add('hidden');
@@ -202,6 +220,7 @@ function setView(target) {
 }
 
 async function uploadImage(file, folder) {
+  // Upload an image to Supabase storage and return the public URL.
   const safeName = `${folder}/${crypto.randomUUID()}-${file.name.replace(/\s+/g, '-')}`;
   const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(safeName, file, { cacheControl: '3600', upsert: false });
   if (error) throw error;
@@ -210,12 +229,14 @@ async function uploadImage(file, folder) {
 }
 
 async function resolvePhoto({ file, url, folder }) {
+  // Decide whether to use an uploaded file or a direct URL.
   if (file) return uploadImage(file, folder);
   if (url) return url;
   return '';
 }
 
 function updateRoleVisibility() {
+  // Show/hide owner-only UI and adjust helper text based on role.
   document.querySelectorAll('.owner-only').forEach(btn => {
     btn.style.display = currentUser && currentUser.role === 'owner' ? 'inline-flex' : 'none';
   });
@@ -235,6 +256,7 @@ function updateRoleVisibility() {
 }
 
 function renderProfile() {
+  // Populate profile drawer and topbar avatar with current user info.
   document.getElementById('profile-name').textContent = currentUser?.name || 'Guest';
   document.getElementById('profile-email').textContent = currentUser?.email || 'Not signed in';
   document.getElementById('profile-role').textContent = currentUser?.role || 'Guest';
@@ -259,6 +281,7 @@ function renderProfile() {
 }
 
 async function updateProfilePhoto(event) {
+  // Handle avatar updates via URL or uploaded file.
   event.preventDefault();
   const errorEl = document.getElementById('profile-avatar-error');
   const successEl = document.getElementById('profile-avatar-success');
@@ -300,6 +323,7 @@ async function updateProfilePhoto(event) {
 }
 
 function renderBusinesses() {
+  // Render the main business list with filters and sorting.
   const listEl = document.getElementById('business-list');
   listEl.innerHTML = '';
 
@@ -355,12 +379,14 @@ function renderBusinesses() {
 }
 
 function renderFavoriteButton(businessId) {
+  // Build a save/unsave button for the given business.
   if (!currentUser || currentUser.role === 'guest') return '';
   const saved = favorites[currentUser.id]?.includes(businessId);
   return `<button class="secondary-btn" data-fav="${businessId}">${saved ? '♡ Saved' : '♡ Save'}</button>`;
 }
 
 function renderFavoritesView() {
+  // Populate the favorites grid based on saved IDs.
   const favSection = document.getElementById('favorites-list');
   favSection.innerHTML = '';
   const favoriteIds = favorites[currentUser?.id] || [];
@@ -397,6 +423,7 @@ function renderFavoritesView() {
 }
 
 function renderOwnerDashboard() {
+  // Show owner stats and editable cards for businesses owned by the user.
   if (!currentUser || currentUser.role !== 'owner') return;
   const owned = businesses.filter(b => b.ownerUserId === currentUser.id);
   const totalReviews = owned.reduce((acc, biz) => acc + (biz.reviews?.length || 0), 0);
@@ -441,6 +468,7 @@ function renderOwnerDashboard() {
 // Authentication
 // -----------------------------
 function showAuthCard(mode = 'choice') {
+  // Swap between signup, signin, and choice cards.
   const choice = document.getElementById('auth-choice-card');
   const signup = document.getElementById('signup-card');
   const signin = document.getElementById('signin-card');
@@ -453,6 +481,7 @@ function showAuthCard(mode = 'choice') {
 }
 
 async function signUp(event) {
+  // Create a new Supabase user and profile after basic human checks.
   event.preventDefault();
   const name = document.getElementById('signup-name').value.trim();
   const email = document.getElementById('signup-email').value.trim().toLowerCase();
@@ -499,6 +528,7 @@ async function signUp(event) {
 }
 
 async function signIn(event) {
+  // Sign an existing user in and hydrate profile details.
   event.preventDefault();
   const email = document.getElementById('signin-email').value.trim().toLowerCase();
   const password = document.getElementById('signin-password').value.trim();
@@ -530,11 +560,13 @@ async function signIn(event) {
 }
 
 function continueAsGuest() {
+  // Let users browse without creating an account.
   currentUser = { id: 'guest', name: 'Guest', email: 'guest', role: 'guest', avatar: DEFAULT_AVATAR };
   enterApp();
 }
 
 function enterApp() {
+  // Transition from auth screen into the main app shell.
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app-screen').classList.remove('hidden');
   updateRoleVisibility();
@@ -545,6 +577,7 @@ function enterApp() {
 }
 
 function logout() {
+  // Clear session info and return to the auth screen.
   currentUser = null;
   supabase.auth.signOut();
   document.getElementById('auth-screen').classList.remove('hidden');
@@ -564,6 +597,7 @@ function logout() {
 // Business detail modal & reviews
 // -----------------------------
 function openDetail(businessId) {
+  // Populate and show the business detail modal.
   const biz = businesses.find(b => b.id === businessId);
   if (!biz) return;
   const modal = document.getElementById('detail-modal');
@@ -617,6 +651,7 @@ function openDetail(businessId) {
 }
 
 function reviewFormTemplate(id) {
+  // Lightweight template for the review form.
   return `
     <form class="review-form" data-review="${id}">
       <label>Rating (1-5)<input type="number" min="1" max="5" required></label>
@@ -631,11 +666,13 @@ function reviewFormTemplate(id) {
 }
 
 function closeDetail() {
+  // Hide the detail modal and clear old content.
   document.getElementById('detail-modal').classList.add('hidden');
   document.getElementById('detail-body').innerHTML = '';
 }
 
 async function submitReview(form) {
+  // Validate and submit a new review, handling optional photo uploads.
   const bizId = form.getAttribute('data-review');
   const ratingInput = form.querySelector('input[type="number"]');
   const commentInput = form.querySelector('textarea');
@@ -717,6 +754,7 @@ async function submitReview(form) {
 // Favorites
 // -----------------------------
 async function toggleFavorite(businessId) {
+  // Save or remove a business from the user's favorites in Supabase.
   if (!currentUser || currentUser.role === 'guest') return;
   favorites[currentUser.id] = favorites[currentUser.id] || [];
   const list = favorites[currentUser.id];
@@ -747,6 +785,7 @@ async function toggleFavorite(businessId) {
 // Add / Edit business
 // -----------------------------
 async function submitBusiness(event) {
+  // Add a new business or update an existing one owned by the user.
   event.preventDefault();
   if (!currentUser || currentUser.role === 'guest') {
     document.getElementById('add-error').textContent = 'Sign in as a business owner to add businesses.';
@@ -840,6 +879,7 @@ async function submitBusiness(event) {
 }
 
 function startEditBusiness(bizId) {
+  // Pre-fill the add form with an existing business for editing.
   const biz = businesses.find(b => b.id === bizId);
   if (!biz || biz.ownerUserId !== currentUser.id) return;
   setView('add');
@@ -864,6 +904,7 @@ function startEditBusiness(bizId) {
 // Event bindings
 // -----------------------------
 function bindEvents() {
+  // Connect UI controls to their handlers once the DOM is ready.
   document.getElementById('signup-form').addEventListener('submit', signUp);
   document.getElementById('signin-form').addEventListener('submit', signIn);
   document.getElementById('start-create-btn').addEventListener('click', () => showAuthCard('signup'));
@@ -949,6 +990,7 @@ function bindEvents() {
 // Initialization
 // -----------------------------
 async function initSession() {
+  // Restore an existing Supabase session if available.
   const { data } = await supabase.auth.getSession();
   const session = data?.session;
   if (session?.user) {
@@ -973,6 +1015,7 @@ async function initSession() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
+  // Kick off event wiring, assets, and a fresh data sync.
   bindEvents();
   showAuthCard('choice');
   applyStaticAssets();

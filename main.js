@@ -1,8 +1,10 @@
 // Electron main process for Venice Local
+// Creates the desktop window and loads our app shell.
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
 function createWindow() {
+  // Build the main browser window with preload access.
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -20,6 +22,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Show the UI when Electron is ready.
   createWindow();
 
   app.on('activate', () => {
@@ -28,5 +31,6 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  // Quit on all platforms except macOS (common Electron pattern).
   if (process.platform !== 'darwin') app.quit();
 });
