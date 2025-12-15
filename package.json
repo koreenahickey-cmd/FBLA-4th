@@ -15,11 +15,12 @@
   },
   "devDependencies": {
     "electron": "^30.0.9",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^26.0.12"
   },
   "build": {
     "appId": "com.fbla.venicelocal",
     "productName": "Venice Local",
+    "artifactName": "${productName} Setup ${version}.${ext}",
     "directories": {
       "buildResources": "assets"
     },
@@ -27,6 +28,13 @@
       "**/*",
       "!dist{,/**}",
       "assets/**"
-    ]
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": ["dmg", "zip"]
+    }
   }
 }
+
