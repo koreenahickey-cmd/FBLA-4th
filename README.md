@@ -9,12 +9,20 @@ Local business owners can add their businesses to the app, and community members
 ---
 
 ## How to Run #1  
-*(To be completed)*
+Quick way: run straight from the code you download from GitHub.
+
+- Start on the GitHub page for this project and click **Code** → **Download ZIP** (or use `git clone` if you prefer). Unzip if needed.
+- **macOS**: Install Node.js (e.g., `brew install node`). Open Terminal, `cd` into the project folder, run `npm install`, then `npm start`. The app window should pop up.
+- **Windows**: Install Node.js from nodejs.org. Open Command Prompt or PowerShell, `cd` into the project folder, run `npm install`, then `npm start`.
 
 ---
 
 ## How to Run #2
-*(To be completed)*
+Make an installer/app bundle you can open like a normal app.
+
+- Start on the GitHub page for this project and grab the code (Download ZIP or `git clone`), then open the project folder.
+- **macOS**: Install Node.js. Run `npm install` once, then `npm run dist`. Open the `.dmg` in the `dist` folder and drag Venice Local into Applications.
+- **Windows**: Install Node.js. Run `npm install` once, then `npm run dist`. In the `dist` folder, run the generated `.exe` installer and follow the prompts.
 
 ---
 
@@ -41,7 +49,7 @@ CSS
 
 ## Credits  
 App logo created by Emma Nguyen.
-*(insert font credit)*
+(insert font credit)
 
 ---
 
